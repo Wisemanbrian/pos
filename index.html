@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
-    <title>POS Enterprise | Malawi Kwacha Retail System</title>
+    <title>POS Enterprise Pro | World-Class Retail System</title>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
@@ -15,8 +15,8 @@
             <div class="logo-area">
                 <span class="material-icons logo-icon">storefront</span>
                 <div class="logo-text">
-                    <h2>POS Enterprise</h2>
-                    <p>Malawi Kwacha System</p>
+                    <h2>POS Enterprise Pro</h2>
+                    <p>World-Class Retail System</p>
                 </div>
             </div>
             
@@ -53,6 +53,10 @@
                     <span class="material-icons nav-icon">swap_horiz</span>
                     <span class="nav-label">Returns</span>
                 </button>
+                <button class="nav-item admin-only" data-view="voids">
+                    <span class="material-icons nav-icon">cancel</span>
+                    <span class="nav-label">Void Transactions</span>
+                </button>
                 <button class="nav-item" data-view="customers">
                     <span class="material-icons nav-icon">people</span>
                     <span class="nav-label">Customers</span>
@@ -65,9 +69,17 @@
                     <span class="material-icons nav-icon">analytics</span>
                     <span class="nav-label">Analytics</span>
                 </button>
+                <button class="nav-item admin-only" data-view="dailysummary">
+                    <span class="material-icons nav-icon">summarize</span>
+                    <span class="nav-label">Daily Summary</span>
+                </button>
                 <button class="nav-item admin-only" data-view="staff">
                     <span class="material-icons nav-icon">admin_panel_settings</span>
                     <span class="nav-label">Staff</span>
+                </button>
+                <button class="nav-item admin-only" data-view="audit">
+                    <span class="material-icons nav-icon">history</span>
+                    <span class="nav-label">Audit Trail</span>
                 </button>
                 <button class="nav-item admin-only" data-view="tax">
                     <span class="material-icons nav-icon">receipt</span>
@@ -108,7 +120,7 @@
         <main class="main-content" id="mainContent">
             <div class="loading-spinner">
                 <span class="material-icons">autorenew</span>
-                <p>Loading Enterprise System...</p>
+                <p>Loading World-Class POS System...</p>
             </div>
         </main>
     </div>
