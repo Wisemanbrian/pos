@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>POS Enterprise | Malawi Kwacha Retail System</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar" id="sidebar">
+            <div class="logo-area">
+                <span class="material-icons logo-icon">storefront</span>
+                <div class="logo-text">
+                    <h2>POS Enterprise</h2>
+                    <p>Malawi Kwacha System</p>
+                </div>
+            </div>
+            
+            <nav class="nav-menu">
+                <button class="nav-item" data-view="dashboard">
+                    <span class="material-icons nav-icon">dashboard</span>
+                    <span class="nav-label">Dashboard</span>
+                </button>
+                <button class="nav-item" data-view="pos">
+                    <span class="material-icons nav-icon">point_of_sale</span>
+                    <span class="nav-label">Point of Sale</span>
+                </button>
+                <button class="nav-item" data-view="products">
+                    <span class="material-icons nav-icon">inventory_2</span>
+                    <span class="nav-label">Products</span>
+                </button>
+                <button class="nav-item" data-view="categories">
+                    <span class="material-icons nav-icon">category</span>
+                    <span class="nav-label">Categories</span>
+                </button>
+                <button class="nav-item" data-view="purchases">
+                    <span class="material-icons nav-icon">shopping_cart</span>
+                    <span class="nav-label">Purchase Orders</span>
+                </button>
+                <button class="nav-item" data-view="suppliers">
+                    <span class="material-icons nav-icon">local_shipping</span>
+                    <span class="nav-label">Suppliers</span>
+                </button>
+                <button class="nav-item" data-view="orders">
+                    <span class="material-icons nav-icon">receipt_long</span>
+                    <span class="nav-label">Transactions</span>
+                </button>
+                <button class="nav-item" data-view="returns">
+                    <span class="material-icons nav-icon">swap_horiz</span>
+                    <span class="nav-label">Returns</span>
+                </button>
+                <button class="nav-item" data-view="customers">
+                    <span class="material-icons nav-icon">people</span>
+                    <span class="nav-label">Customers</span>
+                </button>
+                <button class="nav-item" data-view="loyalty">
+                    <span class="material-icons nav-icon">loyalty</span>
+                    <span class="nav-label">Loyalty Program</span>
+                </button>
+                <button class="nav-item" data-view="reports">
+                    <span class="material-icons nav-icon">analytics</span>
+                    <span class="nav-label">Analytics</span>
+                </button>
+                <button class="nav-item admin-only" data-view="staff">
+                    <span class="material-icons nav-icon">admin_panel_settings</span>
+                    <span class="nav-label">Staff</span>
+                </button>
+                <button class="nav-item admin-only" data-view="tax">
+                    <span class="material-icons nav-icon">receipt</span>
+                    <span class="nav-label">Tax Settings</span>
+                </button>
+                <button class="nav-item admin-only" data-view="stores">
+                    <span class="material-icons nav-icon">store</span>
+                    <span class="nav-label">Multi-Store</span>
+                </button>
+                <button class="nav-item" data-view="settings">
+                    <span class="material-icons nav-icon">settings</span>
+                    <span class="nav-label">Settings</span>
+                </button>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="store-info">
+                    <span class="material-icons">business</span>
+                    <span id="storeName">Main Store</span>
+                </div>
+                <div class="user-info">
+                    <span class="material-icons">account_circle</span>
+                    <span id="sidebarUserName">Loading...</span>
+                    <span class="role-badge" id="userRoleBadge"></span>
+                </div>
+                <button id="logoutBtn" class="logout-btn">
+                    <span class="material-icons">logout</span>
+                    <span>Logout</span>
+                </button>
+                <button id="darkModeToggle" class="dark-mode-btn">
+                    <span class="material-icons">dark_mode</span>
+                    <span>Dark Mode</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content" id="mainContent">
+            <div class="loading-spinner">
+                <span class="material-icons">autorenew</span>
+                <p>Loading Enterprise System...</p>
+            </div>
+        </main>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="script.js"></script>
+</body>
+</html>

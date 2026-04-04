@@ -1,0 +1,103 @@
+Login Credentials
+Role	Username	Password
+Admin	admin	admin123
+Manager	manager	manager123
+Cashier	cashier1	cash123
+Powerful Features Included
+🏪 Core POS Features
+Complete point of sale with cart management
+
+Barcode/SKU search
+
+Category filtering
+
+Real-time stock checking
+
+📦 Inventory Management
+Add/edit/delete products
+
+Stock tracking with low stock alerts
+
+SKU and barcode support
+
+Cost price and profit calculation
+
+Reorder level notifications
+
+👔 Staff Management (Admin Only)
+Create cashier accounts
+
+Create manager accounts
+
+Role-based access control
+
+Edit/delete staff members
+
+🚚 Supplier Management
+Add/Edit suppliers
+
+Supplier contact information
+
+Purchase order creation
+
+Stock receiving from POs
+
+👥 Customer Management
+Customer profiles with purchase history
+
+Loyalty points system
+
+Tier-based rewards (Bronze/Silver/Gold/Platinum)
+
+Points redemption
+
+🔄 Returns Management
+Process returns and refunds
+
+Return reasons tracking
+
+Automatic stock adjustment
+
+📊 Advanced Analytics
+Revenue reports (daily/monthly/total)
+
+Category sales breakdown
+
+Top selling products
+
+Profit margin analysis
+
+Low stock alerts
+
+🏪 Multi-Store Support
+Create multiple stores
+
+Switch between stores
+
+Store-specific settings
+
+💰 Discount & Tax
+Percentage discounts
+
+Automatic tax calculation (8%)
+
+Multiple payment methods
+
+🎨 UI/UX
+Dark mode toggle
+
+Responsive design
+
+Toast notifications
+
+Print receipts
+
+Export data backup
+
+🔐 Security
+Role-based access (Admin/Manager/Cashier)
+
+Secure login system
+
+Session management
+
