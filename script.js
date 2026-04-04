@@ -1446,7 +1446,7 @@ function showLoginModal() {
         <div class="form-group"><label>Password</label><input id="loginPassword" type="password" placeholder="Enter password"></div>
         <div id="loginError" style="color:var(--danger); font-size:0.7rem;"></div>
         <div class="form-actions"><button class="btn btn-primary" id="loginBtn">Login</button></div>
-        <p style="margin-top:1rem; font-size:0.65rem; text-align:center;">Demo Accounts:<br>Admin: admin/admin123 | Manager: manager/manager123 | Cashier: cashier1/cash123</p>
+        <p style="margin-top:1rem; font-size:0.65rem; text-align:center;"></p>
     `);
     document.body.appendChild(modal);
     document.getElementById('loginBtn')?.addEventListener('click', () => {
