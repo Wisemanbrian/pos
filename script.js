@@ -1,5 +1,5 @@
 // ============================================
-// WORLD-CLASS POS SYSTEM - CONFIGURATION
+// COMPLETE POS SYSTEM - WITH KITCHEN DOCKETS
 // ============================================
 const CURRENCY = {
     code: 'MWK',
@@ -17,20 +17,21 @@ const TAX_CONFIG = {
 // ============================================
 // STORAGE KEYS
 // ============================================
-const STORAGE_USERS = 'pos_world_users';
-const STORAGE_PRODUCTS = 'pos_world_products';
-const STORAGE_ORDERS = 'pos_world_orders';
-const STORAGE_VOIDS = 'pos_world_voids';
-const STORAGE_CUSTOMERS = 'pos_world_customers';
-const STORAGE_SUPPLIERS = 'pos_world_suppliers';
-const STORAGE_CATEGORIES = 'pos_world_categories';
-const STORAGE_PURCHASES = 'pos_world_purchases';
-const STORAGE_RETURNS = 'pos_world_returns';
-const STORAGE_STORES = 'pos_world_stores';
-const STORAGE_AUDIT = 'pos_world_audit';
-const STORAGE_CURRENT_USER = 'pos_world_current_user';
-const STORAGE_SESSION = 'pos_world_session';
-const STORAGE_TAX_SETTINGS = 'pos_world_tax';
+const STORAGE_USERS = 'pos_complete_users';
+const STORAGE_PRODUCTS = 'pos_complete_products';
+const STORAGE_ORDERS = 'pos_complete_orders';
+const STORAGE_VOIDS = 'pos_complete_voids';
+const STORAGE_DOCKETS = 'pos_complete_dockets';
+const STORAGE_CUSTOMERS = 'pos_complete_customers';
+const STORAGE_SUPPLIERS = 'pos_complete_suppliers';
+const STORAGE_CATEGORIES = 'pos_complete_categories';
+const STORAGE_PURCHASES = 'pos_complete_purchases';
+const STORAGE_RETURNS = 'pos_complete_returns';
+const STORAGE_STORES = 'pos_complete_stores';
+const STORAGE_AUDIT = 'pos_complete_audit';
+const STORAGE_CURRENT_USER = 'pos_complete_current_user';
+const STORAGE_SESSION = 'pos_complete_session';
+const STORAGE_TAX_SETTINGS = 'pos_complete_tax';
 
 // ============================================
 // GLOBAL STATE
@@ -39,6 +40,7 @@ let currentUser = null;
 let products = [];
 let orders = [];
 let voids = [];
+let dockets = [];
 let customers = [];
 let suppliers = [];
 let categories = [];
@@ -52,6 +54,7 @@ let currentCategoryFilter = 'all';
 let searchQuery = '';
 let currentStore = null;
 let taxSettings = { vatRate: TAX_CONFIG.VAT_RATE, enabled: true };
+let nextDocketNumber = 1;
 
 // ============================================
 // INITIAL DATA
@@ -105,13 +108,6 @@ function formatCurrency(amount) {
     return `${CURRENCY.symbol} ${Math.round(amount).toLocaleString()}`;
 }
 
-function formatCurrencyBlurred(amount, isAdmin) {
-    if (isAdmin) {
-        return formatCurrency(amount);
-    }
-    return '••••••';
-}
-
 function calculateVAT(amount) {
     return amount * taxSettings.vatRate;
 }
@@ -140,13 +136,13 @@ function addAuditLog(action, details) {
     };
     auditLog.unshift(logEntry);
     localStorage.setItem(STORAGE_AUDIT, JSON.stringify(auditLog));
-    
     if (auditLog.length > 1000) auditLog = auditLog.slice(0, 1000);
 }
 
 function saveProducts() { localStorage.setItem(STORAGE_PRODUCTS, JSON.stringify(products)); }
 function saveOrders() { localStorage.setItem(STORAGE_ORDERS, JSON.stringify(orders)); }
 function saveVoids() { localStorage.setItem(STORAGE_VOIDS, JSON.stringify(voids)); }
+function saveDockets() { localStorage.setItem(STORAGE_DOCKETS, JSON.stringify(dockets)); }
 function saveCustomers() { localStorage.setItem(STORAGE_CUSTOMERS, JSON.stringify(customers)); }
 function saveSuppliers() { localStorage.setItem(STORAGE_SUPPLIERS, JSON.stringify(suppliers)); }
 function saveCategories() { localStorage.setItem(STORAGE_CATEGORIES, JSON.stringify(categories)); }
@@ -167,6 +163,10 @@ function loadData() {
     const storedVoids = localStorage.getItem(STORAGE_VOIDS);
     if (storedVoids) voids = JSON.parse(storedVoids);
     else voids = [];
+    
+    const storedDockets = localStorage.getItem(STORAGE_DOCKETS);
+    if (storedDockets) dockets = JSON.parse(storedDockets);
+    else dockets = [];
     
     const storedCustomers = localStorage.getItem(STORAGE_CUSTOMERS);
     if (storedCustomers) customers = JSON.parse(storedCustomers);
@@ -202,6 +202,14 @@ function loadData() {
     if (!localStorage.getItem(STORAGE_USERS)) localStorage.setItem(STORAGE_USERS, JSON.stringify(defaultUsers));
     
     currentStore = stores[0];
+    
+    if (dockets.length > 0) {
+        const maxNum = Math.max(...dockets.map(d => {
+            const match = d.docketNumber.match(/\d+/);
+            return match ? parseInt(match[0]) : 0;
+        }), 0);
+        nextDocketNumber = maxNum + 1;
+    }
 }
 
 function updateDateTime() {
@@ -254,6 +262,96 @@ function isManager() { return currentUser && (currentUser.role === 'admin' || cu
 function isAuthenticated() { return currentUser !== null; }
 
 // ============================================
+// KITCHEN DOCKET FUNCTIONS
+// ============================================
+function generateDocketNumber() {
+    const num = nextDocketNumber;
+    nextDocketNumber++;
+    return `DKT-${String(num).padStart(5, '0')}`;
+}
+
+function createDocket(order) {
+    const docketNumber = generateDocketNumber();
+    const docket = {
+        id: 'dkt_' + Date.now(),
+        docketNumber: docketNumber,
+        orderId: order.id,
+        date: new Date().toISOString(),
+        items: order.items.map(item => ({
+            name: item.name,
+            quantity: item.quantity,
+            price: item.price,
+            subtotal: item.subtotal
+        })),
+        total: order.total,
+        customerName: order.customerName,
+        cashier: order.cashier,
+        status: 'pending', // pending, preparing, ready, served
+        store: order.store
+    };
+    dockets.unshift(docket);
+    saveDockets();
+    addAuditLog('CREATE_DOCKET', `Created kitchen docket ${docketNumber} for order ${order.id}`);
+    showToast(`Kitchen docket ${docketNumber} created!`, 'success');
+    return docket;
+}
+
+function updateDocketStatus(docketId, status) {
+    const docket = dockets.find(d => d.id === docketId);
+    if (docket) {
+        docket.status = status;
+        saveDockets();
+        addAuditLog('UPDATE_DOCKET', `Docket ${docket.docketNumber} status changed to ${status}`);
+        showToast(`Docket ${docket.docketNumber} marked as ${status}`, 'info');
+        renderCurrentView();
+    }
+}
+
+function printDocket(docket) {
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+        <html>
+        <head>
+            <title>Kitchen Docket - ${docket.docketNumber}</title>
+            <style>
+                body { font-family: 'Courier New', monospace; padding: 20px; max-width: 300px; margin: 0 auto; }
+                .header { text-align: center; margin-bottom: 20px; }
+                .items { margin: 20px 0; }
+                .item { display: flex; justify-content: space-between; margin: 5px 0; }
+                .total { margin-top: 20px; border-top: 1px dashed #000; padding-top: 10px; font-weight: bold; }
+                .footer { text-align: center; margin-top: 30px; font-size: 12px; }
+                hr { border: none; border-top: 1px dashed #000; }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h3>🏪 ${docket.store}</h3>
+                <p>KITCHEN DOCKET</p>
+                <p>${docket.docketNumber}</p>
+                <p>${new Date(docket.date).toLocaleString()}</p>
+                <p>Customer: ${docket.customerName}</p>
+                <p>Cashier: ${docket.cashier}</p>
+            </div>
+            <hr/>
+            <div class="items">
+                ${docket.items.map(item => `<div class="item"><span>${item.quantity}x ${item.name}</span><span>${formatCurrency(item.subtotal)}</span></div>`).join('')}
+            </div>
+            <hr/>
+            <div class="total">
+                <div class="item"><strong>TOTAL:</strong><strong>${formatCurrency(docket.total)}</strong></div>
+            </div>
+            <div class="footer">
+                <p>Thank you! Please prepare the order.</p>
+                <p>Status: ${docket.status.toUpperCase()}</p>
+            </div>
+        </body>
+        </html>
+    `);
+    printWindow.print();
+    printWindow.close();
+}
+
+// ============================================
 // VOID TRANSACTION (ADMIN ONLY)
 // ============================================
 function voidTransaction(orderId, reason) {
@@ -285,6 +383,13 @@ function voidTransaction(orderId, reason) {
     order.voidReason = reason;
     orders[orderIndex] = order;
     saveOrders();
+    
+    // Also void any associated dockets
+    const orderDockets = dockets.filter(d => d.orderId === orderId);
+    orderDockets.forEach(d => {
+        d.status = 'voided';
+    });
+    saveDockets();
     
     order.items.forEach(item => {
         const product = products.find(p => p.id === item.id);
@@ -791,6 +896,10 @@ function completeSale(amountReceived, paymentMethod = 'cash') {
     orders.unshift(order);
     saveOrders();
     addAuditLog('SALE_COMPLETED', `Sale completed - Order: ${order.id} - Total: ${formatCurrency(order.total)}`);
+    
+    // AUTO CREATE KITCHEN DOCKET
+    createDocket(order);
+    
     clearCart();
     return order;
 }
@@ -817,21 +926,38 @@ function showReceipt(order) {
             <hr/>
             ${customer.points > 0 ? `<p>Loyalty Points: ${customer.points}</p>` : ''}
             <p style="text-align:center; font-size:0.6rem;">Thank you! Visit again</p>
-            <p style="text-align:center; font-size:0.55rem;">This is a computer generated invoice</p>
-        </div>
-        <div class="form-actions">
-            <button class="btn btn-primary" id="printReceiptBtn">🖨️ Print</button>
-            <button class="btn" id="closeReceiptBtn">Close</button>
+            <div class="form-actions" style="margin-top:0.8rem;">
+                <button class="btn btn-orange" id="sendToKitchenBtn">🍳 Send to Kitchen</button>
+                <button class="btn btn-primary" id="printReceiptBtn">🖨️ Print</button>
+            </div>
         </div>
     `);
     document.body.appendChild(modal);
+    
+    document.getElementById('sendToKitchenBtn')?.addEventListener('click', () => {
+        const existingDocket = dockets.find(d => d.orderId === order.id);
+        if (existingDocket) {
+            showToast(`Docket ${existingDocket.docketNumber} already sent to kitchen!`, 'info');
+            printDocket(existingDocket);
+        } else {
+            const newDocket = createDocket(order);
+            printDocket(newDocket);
+        }
+        modal.remove();
+    });
+    
     document.getElementById('printReceiptBtn')?.addEventListener('click', () => {
         const receiptHtml = modal.querySelector('.receipt').cloneNode(true);
         const win = window.open('', '_blank');
         win.document.write(`<html><head><title>Tax Invoice</title><style>body{font-family:monospace;padding:20px;}</style></head><body>${receiptHtml.outerHTML}</body></html>`);
         win.print();
     });
-    document.getElementById('closeReceiptBtn')?.addEventListener('click', () => modal.remove());
+    
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'btn';
+    closeBtn.innerText = 'Close';
+    closeBtn.onclick = () => modal.remove();
+    modal.querySelector('.form-actions').appendChild(closeBtn);
 }
 
 // ============================================
@@ -1339,7 +1465,7 @@ function renderCategoriesView() {
     document.getElementById('mainContent').innerHTML = `
         <div class="header-bar"><h1 class="page-title">📂 Categories</h1><div class="datetime" id="datetimeDisplay"></div></div>
         <div class="search-bar"><button class="btn btn-primary" id="addCategoryBtn">+ Add Category</button></div>
-        <div class="table-container"><table class="data-table"><thead><tr><th>Name</th><th>Description</th><th>Products</th><th>Actions</th></tr></thead><tbody>${categories.map(c => `<tr><td><span class="material-icons" style="font-size:1rem;">${c.icon || 'category'}</span> ${c.name}</td><td>${c.description || '-'}</td><td>${products.filter(p => p.category === c.name).length}</td><td><button class="btn btn-sm btn-primary edit-cat" data-id="${c.id}">Edit</button> <button class="btn btn-sm btn-danger delete-cat" data-id="${c.id}">Delete</button></td></tr>`).join('')}</tbody>}</table></div>
+        <div class="table-container"><table class="data-table"><thead><tr><th>Name</th><th>Description</th><th>Products</th><th>Actions</th></tr></thead><tbody>${categories.map(c => `<tr><td><span class="material-icons" style="font-size:1rem;">${c.icon || 'category'}</span> ${c.name}</td><td>${c.description || '-'}</td><td>${products.filter(p => p.category === c.name).length}</td><td><button class="btn btn-sm btn-primary edit-cat" data-id="${c.id}">Edit</button> <button class="btn btn-sm btn-danger delete-cat" data-id="${c.id}">Delete</button></td></tr>`).join('')}</tbody></table></div>
     `;
     document.getElementById('addCategoryBtn')?.addEventListener('click', () => showCategoryModal());
     document.querySelectorAll('.edit-cat').forEach(btn => btn.addEventListener('click', () => showCategoryModal(categories.find(c => c.id === btn.dataset.id))));
@@ -1352,7 +1478,7 @@ function renderPurchasesView() {
     document.getElementById('mainContent').innerHTML = `
         <div class="header-bar"><h1 class="page-title">📦 Purchase Orders</h1><div class="datetime" id="datetimeDisplay"></div></div>
         <div class="search-bar"><button class="btn btn-primary" id="createPOBtn">+ Create PO</button></div>
-        <div class="table-container"><table class="data-table"><thead><tr><th>PO #</th><th>Date</th><th>Supplier</th><th>Items</th><th>Total</th><th>Status</th><th>Action</th></tr></thead><tbody>${purchases.map(po => `<tr><td>${po.id}</td><td>${new Date(po.date).toLocaleDateString()}</td><td>${po.supplierName}</td><td>${po.items.length}</td><td>${formatCurrency(po.total)}</td><td><span class="badge badge-${po.status === 'received' ? 'success' : 'warning'}">${po.status}</span></td><td>${po.status === 'pending' ? `<button class="btn btn-sm btn-success receive-po" data-id="${po.id}">Receive</button>` : 'Received'}</td></tr>`).join('')}</tbody>}</table></div>
+        <div class="table-container"><table class="data-table"><thead><tr><th>PO #</th><th>Date</th><th>Supplier</th><th>Items</th><th>Total</th><th>Status</th><th>Action</th></tr></thead><tbody>${purchases.map(po => `<tr><td>${po.id}</td><td>${new Date(po.date).toLocaleDateString()}</td><td>${po.supplierName}</td><td>${po.items.length}</td><td>${formatCurrency(po.total)}</td><td><span class="badge badge-${po.status === 'received' ? 'success' : 'warning'}">${po.status}</span></td><td>${po.status === 'pending' ? `<button class="btn btn-sm btn-success receive-po" data-id="${po.id}">Receive</button>` : 'Received'}</td></tr>`).join('')}</tbody></table></div>
     `;
     document.getElementById('createPOBtn')?.addEventListener('click', () => showPOModal());
     document.querySelectorAll('.receive-po').forEach(btn => btn.addEventListener('click', () => receivePurchaseOrder(btn.dataset.id)));
@@ -1389,10 +1515,18 @@ function renderOrdersView() {
     const activeOrders = orders.filter(o => o.status !== 'voided');
     document.getElementById('mainContent').innerHTML = `
         <div class="header-bar"><h1 class="page-title">📜 Transaction History</h1><div class="datetime" id="datetimeDisplay"></div></div>
-        <div class="table-container"><table class="data-table"><thead><tr><th>Order ID</th><th>Date</th><th>Customer</th><th>Items</th><th>Total</th><th>Cashier</th><th>Action</th></tr></thead><tbody>${activeOrders.length === 0 ? '<tr><td colspan="7">No transactions yet</td>' : activeOrders.map(order => `<tr><td>${order.id}</td><td>${new Date(order.date).toLocaleString()}</td><td>${order.customerName}</td><td>${order.items.length}</td><td>${formatCurrency(order.total)}</td><td>${order.cashier}</td><td><button class="btn btn-sm view-order" data-id="${order.id}">View</button>${isAdmin() ? ` <button class="btn btn-sm btn-danger void-order" data-id="${order.id}">Void</button>` : ''}</td></tr>`).join('')}</tbody>}</table></div>
+        <div class="table-container"><table class="data-table"><thead><tr><th>Order ID</th><th>Date</th><th>Customer</th><th>Items</th><th>Total</th><th>Cashier</th><th>Action</th></tr></thead><tbody>${activeOrders.length === 0 ? '<tr><td colspan="7">No transactions yet</td></tr>' : activeOrders.map(order => `<tr><td>${order.id}</td><td>${new Date(order.date).toLocaleString()}</td><td>${order.customerName}</td><td>${order.items.length}</td><td>${formatCurrency(order.total)}</td><td>${order.cashier}</td><td><button class="btn btn-sm view-order" data-id="${order.id}">View</button>${isAdmin() ? ` <button class="btn btn-sm btn-danger void-order" data-id="${order.id}">Void</button>` : ''} <button class="btn btn-sm btn-orange kitchen-docket" data-id="${order.id}">🍳 Docket</button></td></tr>`).join('')}</tbody></table></div>
     `;
     document.querySelectorAll('.view-order').forEach(btn => btn.addEventListener('click', () => { const order = orders.find(o => o.id === btn.dataset.id); if (order) showReceipt(order); }));
     document.querySelectorAll('.void-order').forEach(btn => btn.addEventListener('click', () => showVoidModal(btn.dataset.id)));
+    document.querySelectorAll('.kitchen-docket').forEach(btn => btn.addEventListener('click', () => {
+        const order = orders.find(o => o.id === btn.dataset.id);
+        if (order) {
+            let docket = dockets.find(d => d.orderId === order.id);
+            if (!docket) docket = createDocket(order);
+            printDocket(docket);
+        }
+    }));
     updateDateTime();
 }
 
@@ -1400,7 +1534,7 @@ function renderReturnsView() {
     if (!isManager()) { showToast('Manager access required!', 'error'); renderDashboard(); return; }
     document.getElementById('mainContent').innerHTML = `
         <div class="header-bar"><h1 class="page-title">🔄 Returns & Refunds</h1><div class="datetime" id="datetimeDisplay"></div></div>
-        <div class="table-container"><table class="data-table"><thead><tr><th>Return ID</th><th>Order ID</th><th>Date</th><th>Items</th><th>Refund Amount</th><th>Reason</th><th>Processed By</th></tr></thead><tbody>${returns.length === 0 ? '<tr><td colspan="7">No returns yet</td>' : returns.map(ret => `<td><td>${ret.id}</td><td>${ret.orderId}</td><td>${new Date(ret.date).toLocaleDateString()}</td><td>${ret.items.length}</td><td>${formatCurrency(ret.total)}</td><td>${ret.reason}</td><td>${ret.processedBy}</td></tr>`).join('')}</tbody>}</table></div>
+        <div class="table-container"><table class="data-table"><thead><tr><th>Return ID</th><th>Order ID</th><th>Date</th><th>Items</th><th>Refund Amount</th><th>Reason</th><th>Processed By</th></tr></thead><tbody>${returns.length === 0 ? '<tr><td colspan="7">No returns yet</td></tr>' : returns.map(ret => `<tr><td>${ret.id}</td><td>${ret.orderId}</td><td>${new Date(ret.date).toLocaleDateString()}</td><td>${ret.items.length}</td><td>${formatCurrency(ret.total)}</td><td>${ret.reason}</td><td>${ret.processedBy}</td></tr>`).join('')}</tbody></table></div>
     `;
     updateDateTime();
 }
@@ -1409,8 +1543,60 @@ function renderVoidsView() {
     if (!isAdmin()) { showToast('Admin access required!', 'error'); renderDashboard(); return; }
     document.getElementById('mainContent').innerHTML = `
         <div class="header-bar"><h1 class="page-title">🚫 Voided Transactions</h1><div class="datetime" id="datetimeDisplay"></div></div>
-        <div class="table-container"><table class="data-table"><thead><tr><th>Void ID</th><th>Order ID</th><th>Date</th><th>Voided By</th><th>Amount</th><th>Reason</th></tr></thead><tbody>${voids.length === 0 ? '<tr><td colspan="6">No voided transactions</td>' : voids.map(v => `<tr><td>${v.id}</td><td>${v.orderId}</td><td>${new Date(v.voidDate).toLocaleString()}</td><td>${v.voidedBy}</td><td>${formatCurrency(v.totalVoided)}</td><td>${v.reason}</td></tr>`).join('')}</tbody>}</table></div>
+        <div class="table-container"><table class="data-table"><thead><tr><th>Void ID</th><th>Order ID</th><th>Date</th><th>Voided By</th><th>Amount</th><th>Reason</th></tr></thead><tbody>${voids.length === 0 ? '<tr><td colspan="6">No voided transactions</td></tr>' : voids.map(v => `<tr><td>${v.id}</td><td>${v.orderId}</td><td>${new Date(v.voidDate).toLocaleString()}</td><td>${v.voidedBy}</td><td>${formatCurrency(v.totalVoided)}</td><td>${v.reason}</td></tr>`).join('')}</tbody></table></div>
     `;
+    updateDateTime();
+}
+
+function renderDocketsView() {
+    document.getElementById('mainContent').innerHTML = `
+        <div class="header-bar"><h1 class="page-title">🍳 Kitchen Dockets</h1><div class="datetime" id="datetimeDisplay"></div></div>
+        <div class="dockets-grid">
+            ${dockets.length === 0 ? '<div class="stat-card">No kitchen dockets yet. Complete a sale to generate a docket.</div>' : dockets.map(docket => `
+                <div class="docket-card">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span class="material-icons" style="font-size:1.5rem;">kitchen</span>
+                        <span class="badge badge-${docket.status === 'pending' ? 'warning' : (docket.status === 'preparing' ? 'info' : (docket.status === 'ready' ? 'success' : 'danger'))}">${docket.status.toUpperCase()}</span>
+                    </div>
+                    <div class="product-name">${docket.docketNumber}</div>
+                    <div style="font-size:0.7rem;">Order: ${docket.orderId}</div>
+                    <div style="font-size:0.7rem;">Date: ${new Date(docket.date).toLocaleString()}</div>
+                    <div style="font-size:0.7rem;">Customer: ${docket.customerName}</div>
+                    <div style="font-size:0.7rem;">Cashier: ${docket.cashier}</div>
+                    <hr style="margin:0.3rem 0;">
+                    <div style="font-size:0.7rem;">
+                        ${docket.items.map(item => `<div>${item.quantity}x ${item.name} - ${formatCurrency(item.subtotal)}</div>`).join('')}
+                    </div>
+                    <div class="total-row" style="margin-top:0.3rem; padding-top:0.3rem;"><strong>Total: ${formatCurrency(docket.total)}</strong></div>
+                    <div class="form-actions" style="margin-top:0.5rem;">
+                        <button class="btn btn-sm btn-primary print-docket" data-id="${docket.id}">🖨️ Print</button>
+                        ${isManager() ? `
+                            <select class="status-select" data-id="${docket.id}" style="font-size:0.7rem; padding:0.2rem;">
+                                <option value="pending" ${docket.status === 'pending' ? 'selected' : ''}>Pending</option>
+                                <option value="preparing" ${docket.status === 'preparing' ? 'selected' : ''}>Preparing</option>
+                                <option value="ready" ${docket.status === 'ready' ? 'selected' : ''}>Ready</option>
+                                <option value="served" ${docket.status === 'served' ? 'selected' : ''}>Served</option>
+                            </select>
+                        ` : `<span class="badge badge-${docket.status === 'pending' ? 'warning' : (docket.status === 'preparing' ? 'info' : (docket.status === 'ready' ? 'success' : 'danger'))}">${docket.status.toUpperCase()}</span>`}
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+    document.querySelectorAll('.print-docket').forEach(btn => btn.addEventListener('click', () => {
+        const docket = dockets.find(d => d.id === btn.dataset.id);
+        if (docket) printDocket(docket);
+    }));
+    if (isManager()) {
+        document.querySelectorAll('.status-select').forEach(select => {
+            select.addEventListener('change', (e) => {
+                const docketId = select.dataset.id;
+                const newStatus = select.value;
+                updateDocketStatus(docketId, newStatus);
+                renderDocketsView();
+            });
+        });
+    }
     updateDateTime();
 }
 
@@ -1418,7 +1604,7 @@ function renderCustomersView() {
     document.getElementById('mainContent').innerHTML = `
         <div class="header-bar"><h1 class="page-title">👥 Customer Management</h1><div class="datetime" id="datetimeDisplay"></div></div>
         <div class="search-bar"><button class="btn btn-primary" id="addCustomerBtn">+ Add Customer</button></div>
-        <div class="table-container"><table class="data-table"><thead><tr><th>Name</th><th>Phone</th><th>Total Spent</th><th>Points</th><th>Tier</th><th>Visits</th><th>Action</th></tr></thead><tbody>${customers.map(c => `<tr><td>${c.name}</td><td>${c.phone || '-'}</td><td>${isAdmin() ? formatCurrency(c.totalSpent || 0) : '••••••'}</td><td>${c.points || 0}</td><td><span class="badge badge-${c.tier === 'Platinum' ? 'success' : (c.tier === 'Gold' ? 'warning' : 'info')}">${c.tier || 'Bronze'}</span></td><td>${c.visits || 0}</td><td><button class="btn btn-sm edit-customer" data-id="${c.id}">Edit</button></td></tr>`).join('')}</tbody>}70</div>
+        <div class="table-container"><table class="data-table"><thead><tr><th>Name</th><th>Phone</th><th>Total Spent</th><th>Points</th><th>Tier</th><th>Visits</th><th>Action</th></tr></thead><tbody>${customers.map(c => `<tr><td>${c.name}</td><td>${c.phone || '-'}</td><td>${isAdmin() ? formatCurrency(c.totalSpent || 0) : '••••••'}</td><td>${c.points || 0}</td><td><span class="badge badge-${c.tier === 'Platinum' ? 'success' : (c.tier === 'Gold' ? 'warning' : 'info')}">${c.tier || 'Bronze'}</span></td><td>${c.visits || 0}</td><td><button class="btn btn-sm edit-customer" data-id="${c.id}">Edit</button></td></tr>`).join('')}</tbody></table></div>
     `;
     document.getElementById('addCustomerBtn')?.addEventListener('click', () => showCustomerModal());
     document.querySelectorAll('.edit-customer').forEach(btn => btn.addEventListener('click', () => showCustomerModal(customers.find(c => c.id === btn.dataset.id))));
@@ -1440,7 +1626,7 @@ function renderLoyaltyView() {
             <tr><td>🥇 Gold</td><td>MWK 200,000+</td><td>1 point per MWK 5,000</td><td>7% discount</td></tr>
             <tr><td>🥈 Silver</td><td>MWK 50,000+</td><td>1 point per MWK 5,000</td><td>5% discount</td></tr>
             <tr><td>🥉 Bronze</td><td>MWK 0+</td><td>1 point per MWK 5,000</td><td>Standard</td></tr>
-        </tbody>}70</div>
+        </tbody></table></div>
     `;
     updateDateTime();
 }
@@ -1530,7 +1716,7 @@ function renderAuditView() {
     if (!isAdmin()) { showToast('Admin access required!', 'error'); renderDashboard(); return; }
     document.getElementById('mainContent').innerHTML = `
         <div class="header-bar"><h1 class="page-title">📋 Audit Trail</h1><div class="datetime" id="datetimeDisplay"></div></div>
-        <div class="table-container"><table class="data-table"><thead><tr><th>Time</th><th>User</th><th>Role</th><th>Action</th><th>Details</th></tr></thead><tbody>${auditLog.slice(0, 100).map(log => `<tr><td>${new Date(log.timestamp).toLocaleString()}</td><td>${log.user}</td><td>${log.role}</td><td>${log.action}</td><td>${log.details}</td></tr>`).join('')}</tbody>}70</div>
+        <div class="table-container"><table class="data-table"><thead><tr><th>Time</th><th>User</th><th>Role</th><th>Action</th><th>Details</th></tr></thead><tbody>${auditLog.slice(0, 100).map(log => `<tr><td>${new Date(log.timestamp).toLocaleString()}</td><td>${log.user}</td><td>${log.role}</td><td>${log.action}</td><td>${log.details}</td></tr>`).join('')}</tbody></table></div>
     `;
     updateDateTime();
 }
@@ -1600,23 +1786,23 @@ function renderSettingsView() {
     document.getElementById('mainContent').innerHTML = `
         <div class="header-bar"><h1 class="page-title">⚙️ System Settings</h1><div class="datetime" id="datetimeDisplay"></div></div>
         <div class="stats-grid">
-            <div class="stat-card"><div class="stat-title">System Version</div><div class="stat-value" style="font-size:0.9rem;">v3.0 - Enterprise</div></div>
+            <div class="stat-card"><div class="stat-title">System Version</div><div class="stat-value" style="font-size:0.9rem;">v3.0 - Complete Edition</div></div>
             <div class="stat-card"><div class="stat-title">Currency</div><div class="stat-value" style="font-size:0.9rem;">Malawi Kwacha (MWK)</div></div>
             <div class="stat-card"><div class="stat-title">VAT Rate</div><div class="stat-value" style="font-size:0.9rem;">${(taxSettings.vatRate * 100).toFixed(1)}%</div></div>
             <div class="stat-card"><div class="stat-title">Data Storage</div><div class="stat-value" style="font-size:0.9rem;">Local Storage</div></div>
         </div>
         <div class="stats-grid">
             <div class="stat-card"><div class="stat-title">Export Data</div><button class="btn btn-primary" id="exportDataBtn">📥 Export All Data</button><button class="btn btn-danger" id="clearDataBtn" style="margin-top:0.5rem;">⚠️ Clear All Data</button></div>
-            <div class="stat-card"><div class="stat-title">Database Stats</div><div style="font-size:0.7rem;">Products: ${products.length}</div><div style="font-size:0.7rem;">Orders: ${orders.length}</div><div style="font-size:0.7rem;">Customers: ${customers.length}</div><div style="font-size:0.7rem;">Suppliers: ${suppliers.length}</div></div>
+            <div class="stat-card"><div class="stat-title">Database Stats</div><div style="font-size:0.7rem;">Products: ${products.length}</div><div style="font-size:0.7rem;">Orders: ${orders.length}</div><div style="font-size:0.7rem;">Customers: ${customers.length}</div><div style="font-size:0.7rem;">Suppliers: ${suppliers.length}</div><div style="font-size:0.7rem;">Dockets: ${dockets.length}</div></div>
         </div>
     `;
     document.getElementById('exportDataBtn')?.addEventListener('click', () => {
-        const data = { products, orders, customers, suppliers, categories, purchases, returns, stores, voids, auditLog, taxSettings, users: getUsers() };
+        const data = { products, orders, customers, suppliers, categories, purchases, returns, stores, voids, dockets, auditLog, taxSettings, users: getUsers() };
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `pos_backup_${new Date().toISOString().split('T')[0]}.json`;
+        a.download = `pos_complete_backup_${new Date().toISOString().split('T')[0]}.json`;
         a.click();
         URL.revokeObjectURL(url);
         addAuditLog('EXPORT_DATA', 'Exported all system data');
@@ -1647,6 +1833,7 @@ function renderCurrentView() {
         orders: renderOrdersView,
         returns: renderReturnsView,
         voids: renderVoidsView,
+        dockets: renderDocketsView,
         customers: renderCustomersView,
         loyalty: renderLoyaltyView,
         reports: renderReportsView,
@@ -1696,7 +1883,7 @@ function init() {
         });
         renderCurrentView();
     } else {
-        document.getElementById('mainContent').innerHTML = '<div class="loading-spinner"><span class="material-icons">autorenew</span><p>Welcome to POS Enterprise Pro</p></div>';
+        document.getElementById('mainContent').innerHTML = '<div class="loading-spinner"><span class="material-icons">autorenew</span><p>Welcome to Complete POS System</p></div>';
         showLoginModal();
     }
     
