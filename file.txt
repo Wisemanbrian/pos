@@ -1,1 +1,0 @@
-i like it , now keeping the code lets add button of sending the oorder to the kitchin now and docket , docket will have number , date and order datails corresponding to one the guest have orderd hence must match with the bill.give me whole code
