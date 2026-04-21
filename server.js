@@ -10,10 +10,8 @@ const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_change_me';
 
 // Middleware
-app.use(cors({ 
-  origin: ['https://possbackend-gules.vercel.app/','http://127.0.0.1:5500', 'http://localhost:3000', 'https://posfrontend-eta.vercel.app'], 
-  credentials: true 
-}));
+app.use(cors({ origin: ['http://127.0.0.1:5500', 'http://localhost:5500', 'http://localhost:3000'], credentials: true }));
+app.use(express.json());
 
 // Database pool
 const pool = mysql.createPool({
@@ -24,7 +22,6 @@ const pool = mysql.createPool({
     waitForConnections: true,
     connectionLimit: 10,
 });
-
 
 // Helper: generate unique ID
 function generateId(prefix) {
@@ -690,6 +687,6 @@ app.get('/api/health', async (req, res) => {
 
 // ==================== START SERVER ====================
 app.listen(PORT, () => {
-    console.log(`🚀 POS Backend running on https://possbackend-gules.vercel.app//:${PORT}`);
-    console.log(`   Health check: https://possbackend-gules.vercel.app//:${PORT}/api/health`);
+    console.log(`🚀 POS Backend running on http://localhost:${PORT}`);
+    console.log(`   Health check: http://localhost:${PORT}/api/health`);
 });
