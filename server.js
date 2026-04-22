@@ -12,26 +12,32 @@ const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_change_me';
 // Middleware
 const allowedOrigins = [
   'http://127.0.0.1:5500',
-  'http://localhost:5000', 
+  'http://localhost:5000',
   'http://localhost:3000',
-  'https://posbackend-delta.vercel.app',
-  'https://posfrontend-eta.vercel.app/',
-  process.env.FRONTEND_URL // Optional: add frontend URL from environment
-].filter(Boolean); // Remove any undefined values
+  'https://posfrontend-eta.vercel.app'
+];
 
-app.use(cors({ 
+app.use(cors({
   origin: function(origin, callback) {
-    // Allow requests with no origin (like mobile apps, curl, postman)
+    // Allow requests with no origin (like mobile apps, Postman)
     if (!origin) return callback(null, true);
     
-    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
+    // Allow all localhost origins in development
+    if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+      return callback(null, true);
+    }
+    
+    // Check against allowed origins
+    if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
       console.log('CORS blocked origin:', origin);
-      callback(new Error('Not allowed by CORS'));
+      callback(new Error(`Origin ${origin} not allowed by CORS`));
     }
   },
-  credentials: true 
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 app.use(express.json());
