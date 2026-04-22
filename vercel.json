@@ -18,7 +18,7 @@
       "headers": [
         {
           "key": "Access-Control-Allow-Origin",
-          "value": "https://your-frontend-url.vercel.app"
+          "value": "https://posfrontend-eta.vercel.app/"
         },
         {
           "key": "Access-Control-Allow-Credentials",
