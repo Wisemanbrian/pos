@@ -15,10 +15,12 @@ app.use(cors({
     'http://127.0.0.1:5500',
     'http://localhost:5000', 
     'http://localhost:3000',
+    'https://posbackend-delta.vercel.app',  // ← ADD THIS
     'https://posfrontend-eta.vercel.app'  // ← ADD THIS
   ], 
   credentials: true 
 }));
+app.use(express.json());
 
 // Database pool
 const pool = mysql.createPool({
