@@ -687,6 +687,6 @@ app.get('/api/health', async (req, res) => {
 
 // ==================== START SERVER ====================
 app.listen(PORT, () => {
-    console.log(`🚀 POS Backend running on http://localhost:${PORT}`);
-    console.log(`   Health check: http://localhost:${PORT}/api/health`);
+    console.log(`🚀 POS Backend running on https://posbackend-delta.vercel.app:${PORT}`);
+    console.log(`   Health check: https://posbackend-delta.vercel.app:${PORT}/api/health`);
 });
