@@ -19,7 +19,6 @@ app.use(cors({
   ], 
   credentials: true 
 }));
-app.use(express.json());
 
 // Database pool
 const pool = mysql.createPool({
