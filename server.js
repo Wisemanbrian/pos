@@ -10,31 +10,9 @@ const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_change_me';
 
 // Middleware
-// Middleware
-const allowedOrigins = [
-  'http://127.0.0.1:5500',
-  'http://localhost:5000', 
-  'http://localhost:3000',
-  'https://posbackend-delta.vercel.app',
-  process.env.FRONTEND_URL // Optional: add frontend URL from environment
-].filter(Boolean); // Remove any undefined values
-
-app.use(cors({ 
-  origin: function(origin, callback) {
-    // Allow requests with no origin (like mobile apps, curl, postman)
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
-      callback(null, true);
-    } else {
-      console.log('CORS blocked origin:', origin);
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true 
-}));
-
+app.use(cors({ origin: ['https://posfrontend-eta.vercel.app/', 'http://localhost:5500', 'https://posbackend-delta.vercel.app'], credentials: true }));
 app.use(express.json());
+
 // Database pool
 const pool = mysql.createPool({
     host: process.env.DB_HOST || 'localhost',
@@ -709,6 +687,6 @@ app.get('/api/health', async (req, res) => {
 
 // ==================== START SERVER ====================
 app.listen(PORT, () => {
-    console.log(`🚀 POS Backend running on https://posbackend-delta.vercel.app:${PORT}`);
-    console.log(`   Health check: https://posbackend-delta.vercel.app:${PORT}/api/health`);
+    console.log(`🚀 POS Backend running on https://posbackend-delta.vercel.app${PORT}`);
+    console.log(`   Health check: https://posbackend-delta.vercel.app${PORT}/api/health`);
 });
