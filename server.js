@@ -10,16 +10,7 @@ const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_change_me';
 
 // Middleware
-app.use(cors({ 
-  origin: [
-    'http://127.0.0.1:5500',
-    'http://localhost:5000', 
-    'http://localhost:3000',
-    'https://posbackend-delta.vercel.app',  // ← ADD THIS
-    'https://posfrontend-eta.vercel.app'  // ← ADD THIS
-  ], 
-  credentials: true 
-}));
+app.use(cors({ origin: ['https://posbackend-delta.vercel.app/','https://posfrontend-eta.vercel.app/', 'http://127.0.0.1:5500','http://localhost:5000', 'http://localhost:3000'], credentials: true }));
 app.use(express.json());
 
 // Database pool
