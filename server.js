@@ -10,7 +10,7 @@ const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_change_me';
 
 // Middleware
-app.use(cors({ origin: ['https://posfrontend-eta.vercel.app/',  'https://posbackend-delta.vercel.app'], credentials: true }));
+app.use(cors({ origin: ['http://127.0.0.1:5500', 'http://localhost:5500', 'http://localhost:3000'], credentials: true }));
 app.use(express.json());
 
 // Database pool
@@ -687,6 +687,6 @@ app.get('/api/health', async (req, res) => {
 
 // ==================== START SERVER ====================
 app.listen(PORT, () => {
-    console.log(`🚀 POS Backend running on https://posbackend-delta.vercel.app${PORT}`);
-    console.log(`   Health check: https://posbackend-delta.vercel.app${PORT}/api/health`);
+    console.log(`🚀 POS Backend running on http://localhost:${PORT}`);
+    console.log(`   Health check: http://localhost:${PORT}/api/health`);
 });
